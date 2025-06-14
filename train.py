@@ -108,3 +108,41 @@ save_path = os.path.join(save_dir, "simple_dna_cnn.pt")
 torch.save(model.state_dict(), save_path)
 print(f"✅ 模型已保存到：{save_path}")
 
+#绘制ROC曲线
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+import os
+
+# 收集预测概率和标签
+model.eval()
+all_probs = []
+all_labels = []
+
+with torch.no_grad():
+    for X_batch, y_batch in test_loader:
+        outputs = model(X_batch)
+        probs = F.softmax(outputs, dim=1)[:, 1]  # 类别1的概率
+        all_probs.extend(probs.cpu().numpy())
+        all_labels.extend(y_batch.cpu().numpy())
+
+# ROC计算与绘图
+fpr, tpr, _ = roc_curve(all_labels, all_probs)
+roc_auc = auc(fpr, tpr)
+
+plt.figure(figsize=(6, 6))
+plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.2f})', color='darkorange')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc='lower right')
+plt.grid(True)
+
+# 保存图像到你之前的模型目录
+save_dir = os.path.join("D:/24252/生物物理", "cnn")
+os.makedirs(save_dir, exist_ok=True)
+plt.savefig(os.path.join(save_dir, "roc_curve.png"))
+plt.close()
+
+print("✅ ROC曲线已保存到: ", os.path.join(save_dir, "roc_curve.png"))
